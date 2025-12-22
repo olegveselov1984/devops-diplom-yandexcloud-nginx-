@@ -1,9 +1,7 @@
 FROM nginx:1.21.6-alpine
 
 # Configuration
-ADD conf /etc/nginx
+ADD nginx.conf /etc/nginx.conf
 # Content
-ADD content /var/www/html/
+COPY index.html /usr/share/nginx/html
 
-RUN chown -R nginx:nginx /var/www &&\
-    chmod -R 644 /var/www/html/*
