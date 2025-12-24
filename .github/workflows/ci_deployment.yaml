@@ -31,3 +31,32 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ env.IMAGE_TAG }}:any_commit
+
+
+  deploy:
+    needs: build-and-push
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+      - name: Configure Kubernetes CLI
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+      - name: create tag
+        run:
+          echo "NEW_TAG=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}" >> $GITHUB_ENV
+      - name: Deploy to Cluster
+        uses: azure/k8s-deploy@v5
+        with:
+          action: deploy
+          manifests: deployment.yaml
+          namespace: application
+          images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }}
