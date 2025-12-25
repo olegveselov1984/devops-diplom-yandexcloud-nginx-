@@ -1,7 +1,8 @@
-FROM nginx:1.21.6-alpine
+FROM nginx:1.23.3
 
 # Configuration
-ADD conf/nginx.conf /etc/nginx.conf
+ADD conf /etc/nginx
 # Content
-COPY data/index.html /usr/share/nginx/html
+ADD data /usr/share/nginx/html
 
+EXPOSE 80
