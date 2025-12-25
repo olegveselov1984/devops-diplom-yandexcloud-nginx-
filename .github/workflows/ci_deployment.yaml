@@ -74,9 +74,9 @@ deploy:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
-      # 5. Деплоим в Kubernetes
+
       - name: Deploy to Cluster
-        run: |
+        run: 
           # Проверяем подключение к кластеру
           echo "Checking cluster connection..."
           kubectl cluster-info --insecure-skip-tls-verify
