@@ -1,4 +1,4 @@
-# Версия  7
+# Версия 7
 
 name: push_tag_app
 
@@ -13,7 +13,7 @@ env:
 jobs:
   build-and-push:
     name: Build Docker image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
   deploy:
     needs: build-and-push
     name: Deploy to Kubernetes
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,29 +52,18 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
-      - name: Create kubeconfig
-        run: |
-          mkdir -p $HOME/.kube/    
-      - name: Authenticate to Kubernetes cluster
-        env:
-          KUBECONFIGD: ${{ secrets.KUBECONFIG }}
-        run: |
-          echo "${KUBECONFIGD}" > ${HOME}/.kube/config          
-
-      # - name: Configure Kubernetes CLI
-      #   uses: azure/k8s-set-context@v4
-      #   with:
-      #     method: kubeconfig
-      #     kubeconfig: ${{ secrets.KUBECONFIG }}
+      - name: Configure Kubernetes CLI
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
       - name: create tag
         run:
           echo "NEW_TAG=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}" >> $GITHUB_ENV
       - name: Deploy to Cluster
-        # uses: azure/k8s-deploy@v5
-        # with:
-        #   action: deploy
-        #   manifests: deployment.yaml
-        #   namespace: application
-        #   images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }} --insecure-skip-tls-verify --validate=false
-        run: |
-          kubectl apply -f ./deployment.yaml  --validate=false
+        uses: azure/k8s-deploy@v5
+        with:
+          action: deploy
+          manifests: deployment.yaml
+          namespace: application
+          images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }}

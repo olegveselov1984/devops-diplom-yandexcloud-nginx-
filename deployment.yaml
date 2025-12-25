@@ -23,7 +23,7 @@ spec:
         app: diplom-app
     spec:
       containers:
-        - image: olegveselov1984/diplom:v1.0.15
+        - image: olegveselov1984/diplom:latest
           imagePullPolicy: IfNotPresent
           name: diplom-app
           resources:
