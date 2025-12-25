@@ -61,11 +61,11 @@ jobs:
         run:
           echo "NEW_TAG=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}" >> $GITHUB_ENV
       - name: Deploy to Cluster
-        uses: azure/k8s-deploy@v5
-        with:
-          action: deploy
-          manifests: deployment.yaml
-          namespace: application
-          images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }} --insecure-skip-tls-verify --validate=false
-
-   
+        # uses: azure/k8s-deploy@v5
+        # with:
+        #   action: deploy
+        #   manifests: deployment.yaml
+        #   namespace: application
+        #   images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }} --insecure-skip-tls-verify --validate=false
+        run: |
+          kubectl apply -f ./deployment.yaml  --validate=false
