@@ -60,7 +60,7 @@ jobs:
   #         namespace: application
   #         images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }}
 
-  deploy:
+deploy:
     needs: build
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
