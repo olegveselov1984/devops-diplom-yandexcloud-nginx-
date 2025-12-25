@@ -57,9 +57,9 @@ jobs:
           mkdir -p $HOME/.kube/    
       - name: Authenticate to Kubernetes cluster
         env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
+          KUBECONFIGD: ${{ secrets.KUBECONFIG }}
         run: |
-          echo "${KUBECONFIG}" > ${HOME}/.kube/config          
+          echo "${KUBECONFIGD}" > ${HOME}/.kube/config          
 
       # - name: Configure Kubernetes CLI
       #   uses: azure/k8s-set-context@v4
