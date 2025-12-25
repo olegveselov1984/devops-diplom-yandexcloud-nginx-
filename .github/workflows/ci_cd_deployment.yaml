@@ -40,30 +40,71 @@ jobs:
           tags: ${{ env.VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  deploy:
-    needs: build-and-push
+  # deploy:
+  #   needs: build-and-push
+  #   name: Deploy to Kubernetes
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - name: Docker meta
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.IMAGE_NAME }}
+  #     - name: Configure Kubernetes CLI
+  #       uses: azure/k8s-set-context@v4
+  #       with:
+  #         method: kubeconfig
+  #         kubeconfig: ${{ secrets.KUBECONFIG }}
+  #     - name: create tag
+  #       run:
+  #         echo "NEW_TAG=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}" >> $GITHUB_ENV
+  #     - name: Deploy to Cluster
+  #       uses: azure/k8s-deploy@v5
+  #       with:
+  #         action: deploy
+  #         manifests: deployment.yaml
+  #         namespace: application
+  #         images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }} --insecure-skip-tls-verify --validate=false
+
+    deploy:
+    needs: build
     name: Deploy to Kubernetes
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
+      
       - name: Configure Kubernetes CLI
         uses: azure/k8s-set-context@v4
         with:
           method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
-      - name: create tag
-        run:
-          echo "NEW_TAG=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}" >> $GITHUB_ENV
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      # 5. Деплоим в Kubernetes
       - name: Deploy to Cluster
-        uses: azure/k8s-deploy@v5
-        with:
-          action: deploy
-          manifests: deployment.yaml
-          namespace: application
-          images: ${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }} --insecure-skip-tls-verify --validate=false
+        run: |
+          # Проверяем подключение к кластеру
+          echo "Checking cluster connection..."
+          kubectl cluster-info --insecure-skip-tls-verify
+          kubectl get nodes --insecure-skip-tls-verify
+          
+          # Обновляем image tag в deployment
+          echo "Updating deployment image..."
+          sed -i "s|${{ env.IMAGE_NAME }}:.*|${{ env.IMAGE_NAME }}:${{ github.sha }}|" k8s/deployment.yaml
+          
+          # Применяем манифесты без валидации
+          echo "Applying manifests..."
+          kubectl apply -f k8s/deployment.yaml -n ${{ env.K8S_NAMESPACE }} --insecure-skip-tls-verify --validate=false
+          kubectl apply -f k8s/service.yaml -n ${{ env.K8S_NAMESPACE }} --insecure-skip-tls-verify --validate=false
+          # Если есть Ingress:
+          #kubectl apply -f k8s/ingress.yaml -n ${{ env.K8S_NAMESPACE }} --insecure-skip-tls-verify --validate=false
+
+          # Проверяем поды
+          echo "Checking pods..."
+          kubectl get pods -n ${{ env.K8S_NAMESPACE }} --insecure-skip-tls-verify
+          
+          # Ждем, пока деплоймент обновится
+          echo "Waiting for deployment rollout..."
+          kubectl rollout status deployment/barmaq-app -n ${{ env.K8S_NAMESPACE }} --insecure-skip-tls-verify --timeout=300s
